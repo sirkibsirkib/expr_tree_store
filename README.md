@@ -19,11 +19,12 @@ let lineage_fx = Lineage::Inner(vec![
 ]);
 let li_fx = store.store_lineage(&lineage_fx);
 
-// note that lineage/data ids are identifiers. They will always refer to the same thing
 {
+    // note that lineage/data ids are identifiers. They will always refer to the same thing
     let mut store2 = Store::default();
+    let di_f2 = store.store_data(MY_FUNCTION);
     let li_fx2 = store2.store_lineage(&lineage_fx);
-    assert_eq!(li_fx, li_fx2);
+    assert!(di_f == di_f2 && li_fx == li_fx2);
 }
 
 // This lineage has no known data id (yet!) because (f x) has not yet been computed.
