@@ -1,27 +1,40 @@
-use core::hash::Hasher;
-use std::collections::HashSet;
-use std::collections::{hash_map::Entry, HashMap};
-use std::hash::Hash;
-
-/*
-hashing some bytes gives you a DATA KEY.
-
-
-*/
-
-impl<A: Eq + Hash + Clone, B: Eq + Hash + Clone> Default for OneToManyMap<A, B> {
-    fn default() -> Self {
-        Self {
-            to_bs: Default::default(),
-            to_a: Default::default(),
-        }
-    }
-}
+use std::{
+    collections::{HashMap, HashSet},
+    hash::{Hash, Hasher},
+};
 
 #[derive(Debug)]
 struct OneToManyMap<A: Eq + Hash + Clone, B: Eq + Hash + Clone> {
     to_bs: HashMap<A, HashSet<B>>,
     to_a: HashMap<B, A>,
+}
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+struct DataKey(u64);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+struct LineageKey(u64);
+
+#[derive(Debug, Default)]
+struct Store {
+    data: HashMap<DataKey, Box<[u8]>>,
+    lineage: HashMap<LineageKey, Vec<LineageKey>>,
+    data_classes: OneToManyMap<DataKey, LineageKey>, // data-equivalence classes for lineages
+}
+
+// used externally
+#[derive(Debug)]
+enum Lineage {
+    Inner(Vec<Lineage>), // recursive
+    InnerKey(LineageKey),
+    Leaf(DataKey),
+}
+
+////////////////////////////////////////////////////////////////
+
+impl<A: Eq + Hash + Clone, B: Eq + Hash + Clone> Default for OneToManyMap<A, B> {
+    fn default() -> Self {
+        Self { to_bs: Default::default(), to_a: Default::default() }
+    }
 }
 impl<A: Eq + Hash + Clone, B: Eq + Hash + Clone> OneToManyMap<A, B> {
     fn insert(&mut self, a: A, b: B) -> bool {
@@ -41,12 +54,6 @@ impl<A: Eq + Hash + Clone, B: Eq + Hash + Clone> OneToManyMap<A, B> {
         }
     }
 }
-
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
-struct DataKey(u64);
-
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
-struct LineageKey(u64);
 
 impl std::fmt::Debug for LineageKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -68,18 +75,10 @@ fn pseudo_data_compute(inputs: &[&[u8]]) -> Box<[u8]> {
     Box::new(h.finish().to_ne_bytes())
 }
 
-#[derive(Debug, Default)]
-struct Store {
-    data: HashMap<DataKey, Box<[u8]>>,
-    lineage: HashMap<LineageKey, Vec<LineageKey>>,
-    data_classes: OneToManyMap<DataKey, LineageKey>, // data-equivalence classes for lineages
-}
 impl Store {
     fn store_data(&mut self, data: &[u8]) -> DataKey {
         let key = DataKey::new(data);
-        self.data
-            .entry(key)
-            .or_insert_with(|| data.to_vec().into_boxed_slice());
+        self.data.entry(key).or_insert_with(|| data.to_vec().into_boxed_slice());
         key
     }
     fn store_lineage(&mut self, lineage: &Lineage) -> LineageKey {
@@ -146,22 +145,14 @@ impl DataKey {
     }
 }
 
-// used externally
-#[derive(Debug)]
-enum Lineage {
-    Inner(Vec<Lineage>), // recursive
-    InnerKey(LineageKey),
-    Leaf(DataKey),
-}
+///////////////////////////////////////////////////////
 
 fn main() {
     let mut store = Store::default();
     let dk_f = store.store_data(b"f");
     let dk_x = store.store_data(b"x");
-    let lk_fx = store.store_lineage(&Lineage::Inner(vec![
-        Lineage::Leaf(dk_f),
-        Lineage::Leaf(dk_x),
-    ]));
+    let lk_fx =
+        store.store_lineage(&Lineage::Inner(vec![Lineage::Leaf(dk_f), Lineage::Leaf(dk_x)]));
     let dk_fx = store.compute_data(&lk_fx).expect("WEH");
     println!("data is {:?}", store.dk_to_data(&dk_fx));
     let lk_f = store.store_lineage(&Lineage::Leaf(dk_f));
