@@ -7,20 +7,28 @@ Example:
 // Make a new store.
 let mut store = Store::default();
 
-// Add two data elements to the store without lineages; keep their data-keys.
-let dk_f = store.store_data(MY_FUNCTION);
-let dk_x = store.store_data(b"x");
+// Add two data elements to the store without lineages; keep their data-ids.
+let di_f = store.store_data(MY_FUNCTION);
+let di_x = store.store_data(b"x");
 
-// Store this lineage corresponding to x applied to f
-// keep its lineage-key
-let lk_fx = store.store_lineage(&Lineage::Inner(vec![
-    Lineage::Leaf(dk_f),
-    Lineage::Leaf(dk_x),
-]));
+// Store this lineage corresponding to x applied to f (i.e. (f x))
+// keep its lineage-id
+let lineage_fx = Lineage::Inner(vec![
+    Lineage::Leaf(di_f),
+    Lineage::Leaf(di_x),
+]);
+let li_fx = store.store_lineage(&lineage_fx);
 
-// This lineage has no known data key (yet!) because (f x) has not yet been computed.
-assert!(store.lk_to_dk(&lk_fx).is_none());
+// note that lineage/data ids are identifiers. They will always refer to the same thing
+{
+    let mut store2 = Store::default();
+    let li_fx2 = store2.store_lineage(&lineage_fx);
+    assert_eq!(li_fx, li_fx2);
+}
+
+// This lineage has no known data id (yet!) because (f x) has not yet been computed.
+assert!(store.li_to_di(&li_fx).is_none());
 // Instruct the store to compute the data corresponding to (f x).
-let dk_fx = store.compute_data(&lk_fx).unwrap();
-assert!(store.dk_to_data(&dk_fx).is_some());
+let di_fx = store.compute_data(&li_fx).unwrap();
+assert!(store.di_to_data(&di_fx).is_some());
 ```
