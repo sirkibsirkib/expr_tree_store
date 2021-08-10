@@ -1,6 +1,11 @@
-# lineage_tree_store
+# Expr Tree Store
 
-A little couple-hour project, experimenting with a store of data that allows you to add arbitrary data values (byte sequences), and separately, describe other data that can be computed by way of its 'lineage', a declarative description of function application, where the function and its input arguments are lineages OR concrete data. The idea is that the store lets you add data without any known lineage, on the other hand describe data which can be computed from a given lineage without necessarily computing it (yet). At any time, a user can attempt to translate a lineage into data (by performing computation), with the store doing everything it can to cache intermediate results all the way up the lineage to minimize the effort required for later computations.
+This demonstrates an approach to distributed pipeline processing that prioritizes caching intermediate results. We assume that any computable value is **data**, a finite-length byte sequences. We introduce **expr** a tree structure with a sequence of children exprs as dependencies. Exprs represent computable functions, where the first child is understood as the function, and all subsequent children are understood as arguments. Each **expr** _evaluates to_ the **data** representing the result of this function application. Note that _evaluates-to_ is a many-to-one relation, as any number of expression trees may compute the same resulting data.
+
+------------
+
+
+This is a little dummy implementation demonstrating a functional approach to pipeline programming where we assume all compute steps can be treated as pure functions. 
 
 Example:
 ```rust
