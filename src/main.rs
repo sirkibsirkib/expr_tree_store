@@ -1,6 +1,3 @@
-// mod main2;
-mod one_to_many_map;
-
 use one_to_many_map::OneToManyMap;
 use std::{
     collections::{HashMap, HashSet},
@@ -76,7 +73,7 @@ impl Store {
                 h.write_u64(data_id.0);
                 h.write_u8(b'D');
                 let expr_id = ExprId(h.finish());
-                self.data_classes.insert(*data_id, expr_id);
+                self.data_classes.insert(*data_id, expr_id).expect("k");
                 expr_id
             }
             Expr::Compute(vec) => {
@@ -92,7 +89,7 @@ impl Store {
             }
         }
     }
-    pub fn data_to_expr(&self, data_id: &DataId) -> Option<&HashSet<ExprId>> {
+    pub fn data_to_expr(&self, data_id: &DataId) -> &HashSet<ExprId> {
         self.data_classes.get_many(data_id)
     }
     pub fn expr_to_data(&self, expr_id: &ExprId) -> Option<&DataId> {
@@ -117,7 +114,7 @@ impl Store {
             .collect::<Result<Vec<&[u8]>, ExprId>>()?;
         let data = pseudo_data_compute(&child_data);
         let data_id = DataId::new(&data);
-        self.data_classes.insert(data_id, *expr_id);
+        self.data_classes.insert(data_id, *expr_id).expect("k");
         self.data.insert(data_id, data);
         Ok(data_id)
     }

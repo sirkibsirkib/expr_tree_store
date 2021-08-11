@@ -5,3 +5,4 @@ edition = "2018"
 
 [dependencies]
 maplit = "1.0.2"
+one_to_many_map = { git = "https://github.com/sirkibsirkib/one_to_many_map" }
